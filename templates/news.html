@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>NEWS SEGMENT</h1>
+
+<div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+  <button class="btn" id="btn-fetch" onclick="fetchHeadlines()">Fetch Headlines</button>
+  <button class="btn" id="btn-compile" onclick="compileScript()" disabled
+    style="background:transparent;color:var(--accent);border:1px solid var(--accent)">
+    Compile Script ▶
+  </button>
+  <span id="sel-count" class="muted"></span>
+  <span id="fetch-status" class="muted"></span>
+</div>
+
+<div id="headlines-wrap" style="display:none;margin-bottom:24px">
+  <div style="display:flex;gap:12px;margin-bottom:10px;align-items:center">
+    <button class="btn btn-ghost" style="padding:4px 12px;font-size:12px" onclick="selectAll()">Select All</button>
+    <button class="btn btn-ghost" style="padding:4px 12px;font-size:12px" onclick="selectNone()">Clear</button>
+    <input id="filter-input" type="text" placeholder="Filter headlines..." style="max-width:260px"
+      oninput="filterHeadlines()">
+  </div>
+  <div id="headlines-list"></div>
+</div>
+
+<div id="result-wrap" style="display:none">
+  <hr style="border-color:var(--border);margin:24px 0">
+  <h2>SCRIPT</h2>
+  <div id="script-status" class="status" style="display:none"></div>
+  <div id="audio-wrap" style="margin-bottom:16px;display:none">
+    <audio id="audio-player" controls style="width:100%"></audio>
+  </div>
+  <pre id="script-text" style="line-height:1.8;color:var(--text)"></pre>
+</div>
+
+<script>
+let allHeadlines = [];
+
+async function fetchHeadlines() {
+  const btn = document.getElementById('btn-fetch');
+  const status = document.getElementById('fetch-status');
+  btn.disabled = true;
+  btn.textContent = 'Fetching...';
+  status.textContent = '';
+
+  try {
+    const r = await fetch('/news/headlines');
+    allHeadlines = await r.json();
+    renderHeadlines(allHeadlines);
+    document.getElementById('headlines-wrap').style.display = 'block';
+    status.textContent = `${allHeadlines.length} headlines pulled`;
+    btn.textContent = 'Refresh';
+  } catch(e) {
+    status.textContent = 'Failed to fetch: ' + e;
+  }
+  btn.disabled = false;
+}
+
+function renderHeadlines(list) {
+  const container = document.getElementById('headlines-list');
+  if (!list.length) { container.innerHTML = '<p class="muted">No headlines available.</p>'; return; }
+
+  // Group by source
+  const bySource = {};
+  list.forEach(h => {
+    if (!bySource[h.source]) bySource[h.source] = [];
+    bySource[h.source].push(h);
+  });
+
+  let html = '';
+  Object.keys(bySource).forEach(source => {
+    html += `<div class="card" style="margin-bottom:12px;padding:12px 16px">
+      <div style="font-size:12px;color:var(--accent);font-weight:bold;margin-bottom:8px;letter-spacing:1px">${source}</div>`;
+    bySource[source].forEach((h, i) => {
+      const id = `h_${source.replace(/\W/g,'_')}_${i}`;
+      const checked = h.score >= 0.5 ? 'checked' : '';
+      html += `<label class="headline-row" style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;cursor:pointer;border-bottom:1px solid var(--border)">
+        <input type="checkbox" data-idx="${allHeadlines.indexOf(h)}" ${checked}
+          style="width:auto;margin-top:3px;accent-color:var(--accent)" onchange="updateCount()">
+        <span style="flex:1">
+          <span style="color:var(--text)">${h.title}</span>
+          ${h.summary ? `<span class="muted" style="display:block;font-size:12px;margin-top:2px">${h.summary.substring(0,160)}…</span>` : ''}
+        </span>
+        ${h.link ? `<a href="${h.link}" target="_blank" style="font-size:11px;white-space:nowrap;padding-top:3px">↗</a>` : ''}
+      </label>`;
+    });
+    html += '</div>';
+  });
+  container.innerHTML = html;
+  updateCount();
+}
+
+function filterHeadlines() {
+  const q = document.getElementById('filter-input').value.toLowerCase();
+  const filtered = q ? allHeadlines.filter(h =>
+    h.title.toLowerCase().includes(q) || h.source.toLowerCase().includes(q)
+  ) : allHeadlines;
+  renderHeadlines(filtered);
+}
+
+function selectAll() {
+  document.querySelectorAll('#headlines-list input[type=checkbox]').forEach(cb => cb.checked = true);
+  updateCount();
+}
+function selectNone() {
+  document.querySelectorAll('#headlines-list input[type=checkbox]').forEach(cb => cb.checked = false);
+  updateCount();
+}
+
+function updateCount() {
+  const checked = document.querySelectorAll('#headlines-list input[type=checkbox]:checked').length;
+  const total = document.querySelectorAll('#headlines-list input[type=checkbox]').length;
+  document.getElementById('sel-count').textContent = `${checked} of ${total} selected`;
+  document.getElementById('btn-compile').disabled = checked === 0;
+  document.getElementById('btn-compile').style.background = checked > 0 ? 'var(--accent)' : 'transparent';
+  document.getElementById('btn-compile').style.color = checked > 0 ? '#000' : 'var(--accent)';
+}
+
+async function compileScript() {
+  const checkboxes = document.querySelectorAll('#headlines-list input[type=checkbox]');
+  const selected = [], skipped = [];
+  checkboxes.forEach(cb => {
+    const h = allHeadlines[parseInt(cb.dataset.idx)];
+    if (h) (cb.checked ? selected : skipped).push(h);
+  });
+
+  const btn = document.getElementById('btn-compile');
+  const statusEl = document.getElementById('script-status');
+  const resultWrap = document.getElementById('result-wrap');
+
+  btn.disabled = true;
+  btn.textContent = 'Writing script...';
+  resultWrap.style.display = 'block';
+  statusEl.style.display = 'block';
+  statusEl.className = 'status';
+  statusEl.textContent = 'Producer is writing the script...';
+  document.getElementById('script-text').textContent = '';
+  document.getElementById('audio-wrap').style.display = 'none';
+
+  try {
+    const r = await fetch('/news/compile', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({selected, skipped})
+    });
+    const data = await r.json();
+
+    if (data.error) {
+      statusEl.className = 'status status-err';
+      statusEl.textContent = 'Error: ' + data.error;
+    } else {
+      statusEl.className = 'status status-ok';
+      statusEl.textContent = 'Script ready.';
+      document.getElementById('script-text').textContent = data.script;
+      if (data.audio_path) {
+        const player = document.getElementById('audio-player');
+        player.src = '/static/' + data.audio_path + '?t=' + Date.now();
+        document.getElementById('audio-wrap').style.display = 'block';
+        player.play();
+      }
+    }
+  } catch(e) {
+    statusEl.className = 'status status-err';
+    statusEl.textContent = 'Request failed: ' + e;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Compile Script ▶';
+}
+</script>
+{% endblock %}

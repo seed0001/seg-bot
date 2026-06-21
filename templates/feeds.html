@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>RSS FEEDS</h1>
+
+<div class="card">
+  <h2>Add Feed</h2>
+  <form method="POST" style="display:flex;gap:10px;align-items:flex-end">
+    <div class="form-group" style="flex:1;margin:0">
+      <label>Name</label>
+      <input name="name" placeholder="e.g. Hacker News" required>
+    </div>
+    <div class="form-group" style="flex:2;margin:0">
+      <label>RSS URL</label>
+      <input name="url" type="url" placeholder="https://..." required>
+    </div>
+    <button type="submit" class="btn">Add</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Active Feeds</h2>
+  {% if feeds %}
+  <table>
+    <thead>
+      <tr><th>Name</th><th>URL</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for f in feeds %}
+    <tr>
+      <td>{{ f.name }}</td>
+      <td class="muted mono">{{ f.url }}</td>
+      <td>
+        <form method="POST" action="/feeds/toggle/{{ f.id }}" style="display:inline">
+          <input type="hidden" name="active" value="{{ '0' if f.active else '1' }}">
+          <button type="submit" class="btn btn-ghost" style="padding:4px 10px;font-size:11px">
+            {{ 'Active ✓' if f.active else 'Paused' }}
+          </button>
+        </form>
+      </td>
+      <td>
+        <form method="POST" action="/feeds/delete/{{ f.id }}">
+          <button type="submit" class="btn btn-danger" style="padding:4px 10px;font-size:11px">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No feeds added yet. Add one above to get started.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Suggested Feeds</h2>
+  <table>
+    <thead><tr><th>Source</th><th>URL</th><th></th></tr></thead>
+    <tbody>
+    {% set suggestions = [
+      ('Hacker News', 'https://hnrss.org/frontpage'),
+      ('GitHub Blog', 'https://github.blog/feed/'),
+      ('The Verge Tech', 'https://www.theverge.com/rss/index.xml'),
+      ('ArsTechnica', 'https://feeds.arstechnica.com/arstechnica/index'),
+      ('Dev.to', 'https://dev.to/feed'),
+      ('InfoQ', 'https://feed.infoq.com/'),
+    ] %}
+    {% for name, url in suggestions %}
+    <tr>
+      <td>{{ name }}</td>
+      <td class="muted mono">{{ url }}</td>
+      <td>
+        <form method="POST">
+          <input type="hidden" name="name" value="{{ name }}">
+          <input type="hidden" name="url" value="{{ url }}">
+          <button type="submit" class="btn btn-ghost" style="padding:4px 10px;font-size:11px">+ Add</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

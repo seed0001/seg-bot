@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+  <h1 style="margin:0">REPORT #{{ report.id }}</h1>
+  <span class="badge badge-{{ report.type }}">{{ report.type }}</span>
+  <span class="muted">{{ report.created_at }}</span>
+  <a href="/reports/{{ report.type }}" class="btn btn-ghost" style="margin-left:auto;padding:6px 14px">← Back</a>
+</div>
+
+{% if report.audio_path %}
+<div class="card">
+  <h2>Audio</h2>
+  <audio controls src="/static/{{ report.audio_path }}" style="width:100%"></audio>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Script / Content</h2>
+  <pre style="line-height:1.7;color:var(--text)">{{ report.content }}</pre>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>GITHUB REPOS</h1>
+
+<div class="card">
+  <h2>Search GitHub</h2>
+  <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
+    <div class="form-group" style="flex:1;margin:0">
+      <label>Search by keyword (no token needed)</label>
+      <input id="gh-search" type="text" placeholder="e.g. python scraper, react dashboard...">
+    </div>
+    <button class="btn" onclick="ghSearch()">Search</button>
+  </div>
+  <div id="search-results"></div>
+</div>
+
+<div class="card">
+  <h2>Add by URL or owner/name</h2>
+  <form method="POST" style="display:flex;gap:10px;align-items:flex-end">
+    <div class="form-group" style="flex:1;margin:0">
+      <input name="repo" placeholder="e.g. torvalds/linux or https://github.com/owner/repo" required>
+    </div>
+    <button type="submit" class="btn">Track</button>
+  </form>
+</div>
+
+<script>
+function ghSearch() {
+  const q = document.getElementById('gh-search').value.trim();
+  if (!q) return;
+  const box = document.getElementById('search-results');
+  box.innerHTML = '<p class="muted">Searching...</p>';
+  fetch('/repos/search?q=' + encodeURIComponent(q))
+    .then(r => r.json())
+    .then(results => {
+      if (!results.length) { box.innerHTML = '<p class="muted">No results.</p>'; return; }
+      let html = '<table><thead><tr><th>Repo</th><th>Description</th><th>Lang</th><th>⭐</th><th></th></tr></thead><tbody>';
+      results.forEach(r => {
+        html += `<tr>
+          <td><a href="${r.url}" target="_blank">${r.full_name}</a></td>
+          <td class="muted">${r.description || '—'}</td>
+          <td class="muted">${r.language || '—'}</td>
+          <td class="muted">${r.stars.toLocaleString()}</td>
+          <td>
+            <form method="POST" action="/repos">
+              <input type="hidden" name="repo" value="${r.full_name}">
+              <button type="submit" class="btn btn-ghost" style="padding:4px 10px;font-size:11px">+ Track</button>
+            </form>
+          </td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      box.innerHTML = html;
+    })
+    .catch(() => { box.innerHTML = '<p class="muted" style="color:var(--danger)">Search failed — GitHub rate limit?</p>'; });
+}
+document.getElementById('gh-search').addEventListener('keydown', e => { if (e.key === 'Enter') ghSearch(); });
+</script>
+
+<div class="card">
+  <h2>Tracked Repos</h2>
+  {% if repos %}
+  <table>
+    <thead>
+      <tr><th>Repo</th><th>Description</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for r in repos %}
+    <tr>
+      <td>
+        <a href="https://github.com/{{ r.owner }}/{{ r.name }}" target="_blank">
+          {{ r.owner }}/{{ r.name }}
+        </a>
+      </td>
+      <td class="muted">{{ r.description or '—' }}</td>
+      <td>
+        <form method="POST" action="/repos/delete/{{ r.id }}">
+          <button type="submit" class="btn btn-danger" style="padding:4px 10px;font-size:11px">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No repos tracked yet. Add one above.</p>
+  {% endif %}
+</div>
+{% endblock %}

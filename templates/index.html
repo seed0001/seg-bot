@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>SEGMENT BOT — DASHBOARD</h1>
+
+<div class="grid-3">
+  <!-- News Segment -->
+  <div class="card">
+    <h2>📡 News Segment</h2>
+    <p class="muted" style="margin-bottom:12px;">Skim headlines, pick your stories, let Rex write and deliver the segment.</p>
+    <a href="/news" class="btn" style="display:inline-block">Open News Desk →</a>
+    <hr style="border-color:var(--border);margin:14px 0">
+    <h3>Recent Segments</h3>
+    {% for r in news %}
+    <div style="margin-bottom:8px">
+      <a href="/report/{{ r.id }}">{{ r.created_at }}</a>
+      <span class="badge badge-news">news</span>
+    </div>
+    {% else %}
+    <p class="muted">No segments yet.</p>
+    {% endfor %}
+    <a href="/reports/news" class="muted" style="display:block;margin-top:8px">View all →</a>
+  </div>
+
+  <!-- GitHub Analysis -->
+  <div class="card">
+    <h2>⚙️ GitHub Analysis</h2>
+    <p class="muted" style="margin-bottom:12px;">Analyze tracked repos, diff against memory, generate summaries.</p>
+    <div class="run-btn-wrap">
+      <button id="btn-github" data-label="Run Now" class="btn" onclick="runSegment('/run/github', null, 'btn-github', 'status-github')">Run Now</button>
+    </div>
+    <div id="status-github" class="status" style="display:none"></div>
+    <script>document.getElementById('status-github').style.display='block'</script>
+    <hr style="border-color:var(--border);margin:14px 0">
+    <h3>Recent</h3>
+    {% for r in github %}
+    <div style="margin-bottom:8px">
+      <a href="/report/{{ r.id }}">{{ r.created_at }}</a>
+      <span class="badge badge-github">github</span>
+    </div>
+    {% else %}
+    <p class="muted">No reports yet.</p>
+    {% endfor %}
+    <a href="/reports/github" class="muted" style="display:block;margin-top:8px">View all →</a>
+  </div>
+
+  <!-- Education -->
+  <div class="card">
+    <h2>🎓 Education</h2>
+    <p class="muted" style="margin-bottom:12px;">Generate a lesson based on your projects. Leave blank to auto-pick topic.</p>
+    <div class="form-group">
+      <input id="edu-topic" type="text" placeholder="Topic (optional)" />
+    </div>
+    <div class="run-btn-wrap">
+      <button id="btn-edu" data-label="Generate Lesson" class="btn"
+        onclick="runSegment('/run/education', {topic: document.getElementById('edu-topic').value}, 'btn-edu', 'status-edu')">
+        Generate Lesson
+      </button>
+    </div>
+    <div id="status-edu" class="status" style="display:none"></div>
+    <script>document.getElementById('status-edu').style.display='block'</script>
+    <hr style="border-color:var(--border);margin:14px 0">
+    <h3>Recent</h3>
+    {% for r in education %}
+    <div style="margin-bottom:8px">
+      <a href="/report/{{ r.id }}">{{ r.created_at }}</a>
+      <span class="badge badge-education">education</span>
+    </div>
+    {% else %}
+    <p class="muted">No reports yet.</p>
+    {% endfor %}
+    <a href="/reports/education" class="muted" style="display:block;margin-top:8px">View all →</a>
+  </div>
+</div>
+{% endblock %}

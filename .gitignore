@@ -1,0 +1,7 @@
+data/
+static/audio/
+__pycache__/
+*.pyc
+*.pyo
+.env
+test_pipeline.py
