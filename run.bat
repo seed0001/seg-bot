@@ -1,4 +1,12 @@
 @echo off
 cd /d "%~dp0"
-"C:\Users\travi\AppData\Local\Programs\Python\Python313\python.exe" app.py
+
+REM Use the Python launcher if available, otherwise fall back to python on PATH
+where py >nul 2>nul
+if %errorlevel%==0 (
+    py app.py
+) else (
+    python app.py
+)
+
 pause

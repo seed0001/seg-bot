@@ -71,8 +71,12 @@ def toggle_feed_route(feed_id):
 @app.route("/repos", methods=["GET", "POST"])
 def repos():
     if request.method == "POST":
-        raw = request.form["repo"].strip().lstrip("https://github.com/")
-        parts = raw.split("/")
+        raw = request.form["repo"].strip()
+        for prefix in ("https://github.com/", "http://github.com/", "github.com/"):
+            if raw.startswith(prefix):
+                raw = raw[len(prefix):]
+                break
+        parts = raw.strip("/").split("/")
         if len(parts) >= 2:
             add_repo(parts[0], parts[1])
     return render_template("repos.html", repos=get_repos())
